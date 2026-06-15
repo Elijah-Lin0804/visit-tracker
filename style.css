@@ -188,3 +188,31 @@ tr:nth-child(even) {
         overflow-x: auto;
     }
 }
+
+/* 讓帶有 hidden 類別的區塊完全隱藏 */
+.hidden {
+  display: none !important;
+}
+
+/* 測試用的基本導覽列樣式，你可以根據喜好修改 */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #333;
+  color: white;
+  padding: 10px 20px;
+}
+.nav-btn {
+  background: none;
+  border: none;
+  color: #ccc;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 16px;
+}
+.nav-btn.active {
+  color: white;
+  font-weight: bold;
+  border-bottom: 2px solid #fff;
+}

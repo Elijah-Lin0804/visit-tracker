@@ -1,145 +1,164 @@
-// ==========================================================================
-// 1. 全域變數與 DOM 元素抓取
-// ==========================================================================
-// 狀態變數：儲存所有的拜訪紀錄資料
-let visitRecords = [];
+// 全局資料暫存器（用來放從後台撈回來的完整資料）
+let dbData = {
+  visitors: [],
+  visitLogs: []
+};
 
-// 抓取 HTML 元素
-const defaultCitySelect = document.getElementById('default-city');
-const saveSettingBtn = document.getElementById('save-setting-btn');
-const formCitySelect = document.getElementById('form-city');
-
-const visitForm = document.getElementById('visit-form');
-const dataListTemplate = document.getElementById('data-list');
-
-const filterDistrictInput = document.getElementById('filter-district');
-const filterBtn = document.getElementById('filter-btn');
-const clearFilterBtn = document.getElementById('clear-filter-btn');
-
-// ==========================================================================
-// 2. 初始化功能 (網頁一打開就要執行的事)
-// ==========================================================================
-document.addEventListener('DOMContentLoaded', () => {
-    // A. 載入預設縣市設定
-    const savedCity = localStorage.getItem('defaultCity') || '台北市';
-    defaultCitySelect.value = savedCity;
-    updateFormCity(savedCity);
-
-    // B. 載入已儲存的拜訪紀錄
-    const savedRecords = localStorage.getItem('visitRecords');
-    if (savedRecords) {
-        visitRecords = JSON.parse(savedRecords); // 將 JSON 字串轉回陣列
-    }
-
-    // C. 渲染表格
-    renderTable(visitRecords);
+// 網頁一載入就執行的初始化動作 (確保 DOM 完全加載後才執行)
+window.addEventListener('DOMContentLoaded', () => {
+  console.log("DOM 完全加載，開始初始化設定...");
+  // 1. 載入先前儲存的系統設定
+  loadSettings();
+  
+  // 2. 嘗試初始化連線撈取資料
+  fetchDatabaseData();
 });
 
-// 更新表單中「被禁用」的縣市下拉選單文字
-function updateFormCity(cityName) {
-    formCitySelect.innerHTML = `<option value="${cityName}">${cityName}</option>`;
+// ==========================================
+// 核心功能 1：系統設定管理 (localStorage)
+// ==========================================
+
+// 將設定值自動儲存起來
+function saveSettings() {
+  const ownerEl = document.getElementById('settings-owner');
+  const gasUrlEl = document.getElementById('settings-gas-url');
+  
+  if (!ownerEl || !gasUrlEl) return; // 安全防護
+
+  const owner = ownerEl.value.trim();
+  const gasUrl = gasUrlEl.value.trim();
+  
+  localStorage.setItem('vt_owner', owner);
+  localStorage.setItem('vt_gas_url', gasUrl);
+  
+  const statusMsg = document.getElementById('settings-status');
+  if (statusMsg) {
+    statusMsg.innerText = "✅ 設定已成功儲存！";
+    statusMsg.style.color = "green";
+  }
+  
+  // 設定一改變，立刻重新撈取新使用者的資料
+  fetchDatabaseData();
 }
 
-// ==========================================================================
-// 3. 系統設定事件
-// ==========================================================================
-saveSettingBtn.addEventListener('click', () => {
-    const selectedCity = defaultCitySelect.value;
-    localStorage.setItem('defaultCity', selectedCity); // 存入 localStorage
-    updateFormCity(selectedCity);                      // 同步更新表單縣市
-    alert(`預設縣市已固定為：${selectedCity}`);
-});
-
-// ==========================================================================
-// 4. 新增紀錄事件
-// ==========================================================================
-visitForm.addEventListener('submit', (e) => {
-    e.preventDefault(); // 阻擋表單預設的重整網頁行為
-
-    // 抓取表單輸入的值
-    const name = document.getElementById('name').value;
-    const gender = document.querySelector('input[name="gender"]:checked').value;
-    const city = formCitySelect.value;
-    const district = document.getElementById('form-district').value.trim();
-    const address = document.getElementById('form-address').value.trim();
-    const visitDate = document.getElementById('visit-date').value;
-    const nextVisitDate = document.getElementById('next-visit-date').value;
-    const notes = document.getElementById('notes').value.trim();
-
-    // 建立一筆新的紀錄物件
-    const newRecord = {
-        id: Date.now(), // 用時間戳記當作不重複的唯一 ID
-        name,
-        gender,
-        fullAddress: `${city}${district}${address}`,
-        district, // 保留行政區，方便之後篩選
-        visitDate,
-        nextVisitDate: nextVisitDate || '未排定',
-        notes: notes || '無'
-    };
-
-    // 加進陣列的最前面（讓最新的紀錄在最上面）
-    visitRecords.unshift(newRecord);
-
-    // 儲存到 localStorage 并更新畫面
-    saveToLocalStorage();
-    renderTable(visitRecords);
-
-    // 清空表單（保留縣市）
-    visitForm.reset();
-    updateFormCity(defaultCitySelect.value); 
-    alert('紀錄儲存成功！');
-});
-
-// 封裝：將資料轉成 JSON 字串存入 localStorage
-function saveToLocalStorage() {
-    localStorage.setItem('visitRecords', JSON.stringify(visitRecords));
+// 載入當前儲存的設定並填入輸入框
+function loadSettings() {
+  const savedOwner = localStorage.getItem('vt_owner') || "";
+  const savedGasUrl = localStorage.getItem('vt_gas_url') || "";
+  
+  const ownerEl = document.getElementById('settings-owner');
+  const gasUrlEl = document.getElementById('settings-gas-url');
+  
+  // 安全防護：確定畫面上有這兩個格子，才把數值塞進去
+  if (ownerEl) ownerEl.value = savedOwner;
+  if (gasUrlEl) gasUrlEl.value = savedGasUrl;
 }
 
-// ==========================================================================
-// 5. 渲染表格與篩選功能
-// ==========================================================================
-// 負責把陣列資料畫到 HTML 表格中
-function renderTable(records) {
-    dataListTemplate.innerHTML = ''; // 先清空舊資料
+// ==========================================
+// 核心功能 2：連線 GAS 讀取雙工作表資料
+// ==========================================
 
-    if (records.length === 0) {
-        dataListTemplate.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#999;">目前沒有資料</td></tr>`;
-        return;
+function fetchDatabaseData() {
+  const owner = localStorage.getItem('vt_owner');
+  const gasUrl = localStorage.getItem('vt_gas_url');
+  
+  // 基礎檢查：如果還沒設定，就提示使用者去設定頁面
+  if (!owner || !gasUrl) {
+    updateWelcomeMessage("歡迎！請先前往「系統設定」輸入代號與 GAS 網址。");
+    const container = document.getElementById('visitor-cards-container');
+    if (container) {
+      container.innerHTML = `<p class="loading-text">⚠️ 請先完成系統設定以讀取資料。</p>`;
     }
-
-    // 跑迴圈把每筆資料塞進表格
-    records.forEach(record => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>**${record.name}**</td>
-            <td>${record.gender}</td>
-            <td>${record.fullAddress}</td>
-            <td>${record.visitDate}</td>
-            <td>${record.nextVisitDate}</td>
-            <td>${record.notes}</td>
-        `;
-        dataListTemplate.appendChild(tr);
+    return;
+  }
+  
+  updateWelcomeMessage(`正在連線資料庫，載入 ${owner} 的專屬資料...`);
+  
+  // 發送 GET 請求給 GAS
+  fetch(gasUrl)
+    .then(response => response.json())
+    .then(res => {
+      if (res.status === "success") {
+        // 只留下一列中 owner 欄位等於目前使用者的資料
+        dbData.visitors = res.data.visitors.filter(v => String(v.owner) === owner);
+        dbData.visitLogs = res.data.visitLogs.filter(log => String(log.owner) === owner);
+        
+        console.log("過濾後的拜訪對象資料：", dbData.visitors);
+        console.log("過濾後的追蹤紀錄資料：", dbData.visitLogs);
+        
+        // 資料準備完畢，驅動儀表板更新與總表渲染
+        updateDashboard();
+        renderVisitorCards();
+      } else {
+        alert("資料庫讀取失敗: " + res.message);
+      }
+    })
+    .catch(err => {
+      console.error("連線錯誤:", err);
+      updateWelcomeMessage("❌ 連線失敗，請檢查 GAS 網址是否正確或是否已發布新版本。");
     });
 }
 
-// 篩選按鈕事件
-filterBtn.addEventListener('click', () => {
-    const keyword = filterDistrictInput.value.trim();
-    
-    // 如果沒輸入關鍵字，就顯示全部
-    if (!keyword) {
-        renderTable(visitRecords);
-        return;
-    }
+// 輔助更新歡迎詞
+function updateWelcomeMessage(msg) {
+  const welcomeText = document.getElementById('dashboard-welcome');
+  if (welcomeText) welcomeText.innerText = msg;
+}
 
-    // 過濾出行政區有包含關鍵字的資料
-    const filtered = visitRecords.filter(record => record.district.includes(keyword));
-    renderTable(filtered);
-});
+// ==========================================
+// 核心功能 3：單頁網頁切換邏輯
+// ==========================================
+function switchPage(pageId) {
+  document.querySelectorAll('.page-view').forEach(page => {
+    page.classList.add('hidden');
+  });
+  
+  const targetPage = document.getElementById(`page-${pageId}`);
+  if (targetPage) {
+    targetPage.classList.remove('hidden');
+  }
 
-// 重設按鈕事件
-clearFilterBtn.addEventListener('click', () => {
-    filterDistrictInput.value = ''; // 清空輸入框
-    renderTable(visitRecords);     // 顯示完整資料
-});
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  const activeBtn = Array.from(document.querySelectorAll('.nav-btn')).find(btn => 
+    btn.getAttribute('onclick').includes(pageId)
+  );
+  // 【此處已修正】：補上 classList 避開第 74 行的 null/TypeError 錯誤
+  if (activeBtn) {
+    activeBtn.classList.add('active');
+  }
+}
+
+// ==========================================
+// 核心功能 4：計算並更新數據儀表板 (Dashboard)
+// ==========================================
+function updateDashboard() {
+  const owner = localStorage.getItem('vt_owner') || "使用者";
+  updateWelcomeMessage(`歡迎回來，${owner}！以下是您的即時傳道數據摘要：`);
+  
+  const total = dbData.visitors.length;
+  const tracking = dbData.visitors.filter(v => v.status === "持續追蹤").length;
+  const newContact = dbData.visitors.filter(v => v.status === "新接觸").length;
+  
+  const totalEl = document.getElementById('stat-total');
+  const trackingEl = document.getElementById('stat-tracking');
+  const newEl = document.getElementById('stat-new');
+  
+  if (totalEl) totalEl.innerText = total + " 人";
+  if (trackingEl) trackingEl.innerText = tracking + " 人";
+  if (newEl) newEl.innerText = newContact + " 人";
+}
+
+// 暫時渲染卡片功能
+function renderVisitorCards() {
+  const container = document.getElementById('visitor-cards-container');
+  if (!container) return;
+  
+  if (dbData.visitors.length === 0) {
+    container.innerHTML = `<p class="loading-text">目前尚無資料，請點擊右上方新增對象！</p>`;
+  } else {
+    container.innerHTML = `<p class="loading-text">💡 已成功讀取 ${dbData.visitors.length} 筆資料，準備渲染卡片...</p>`;
+  }
+}
