@@ -1,0 +1,190 @@
+/* ==========================================================================
+   1. 全域樣式與變數設定
+   ========================================================================== */
+:root {
+    --primary-color: #4a90e2;    /* 主題藍色 */
+    --secondary-color: #f5f7fa;  /* 背景淺灰色 */
+    --text-color: #333333;       /* 主要文字顏色 */
+    --border-color: #cccccc;     /* 邊框顏色 */
+    --success-color: #2ecc71;    /* 儲存成功綠色 */
+}
+
+* {
+    box-sizing: border-box;      /* 讓內距和邊框不會撐大元素寬度 */
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Helvetica Neue', Arial, 'Noto Sans TC', sans-serif;
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    padding: 20px;
+}
+
+/* 主容器：限制最大寬度並居中 */
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    text-align: center;
+    color: var(--primary-color);
+    margin-bottom: 30px;
+}
+
+/* ==========================================================================
+   2. 區塊樣式 (Fieldset)
+   ========================================================================== */
+.section-box {
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 20px;
+    margin-bottom: 25px;
+    background-color: #fff;
+}
+
+.section-box legend {
+    font-weight: bold;
+    padding: 0 10px;
+    color: var(--primary-color);
+    font-size: 1.1rem;
+}
+
+/* ==========================================================================
+   3. 表單元件樣式 (Form)
+   ========================================================================== */
+.form-group {
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column; /* 預設手機版：標籤在上，輸入框在下 */
+}
+
+/* 當螢幕寬度大於 600px 時，切換為左右排列（電腦版） */
+@media (min-width: 600px) {
+    .form-group {
+        flex-direction: row;
+        align-items: center;
+    }
+    .form-group > label:first-child {
+        width: 130px;          /* 固定左側標籤寬度，對齊比較好看 */
+        text-align: right;
+        margin-right: 15px;
+    }
+}
+
+/* 輸入框、下拉選單、文字區域的基本樣式 */
+input[type="text"],
+input[type="date"],
+select,
+textarea {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 1rem;
+    width: 100%;
+    max-width: 100%;
+}
+
+/* 當地址選單被禁用時的樣式（預設縣市） */
+select:disabled {
+    background-color: #e9ecef;
+    color: #495057;
+    cursor: not-allowed;
+}
+
+/* 單選鈕 (Radio) 的排版 */
+.radio-label {
+    margin-right: 20px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+}
+
+.radio-label input {
+    margin-right: 5px;
+}
+
+/* 按鈕基本樣式 */
+button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#save-setting-btn, #submit-btn {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+#save-setting-btn:hover, #submit-btn:hover {
+    background-color: #357abd;
+}
+
+/* ==========================================================================
+   4. 篩選列與表格樣式 (Filter & Table)
+   ========================================================================== */
+.filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 20px;
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.filter-bar input {
+    width: auto;
+    flex-grow: 1; /* 讓輸入框自動填滿剩餘空間 */
+}
+
+#clear-filter-btn {
+    background-color: #6c757d;
+    color: white;
+}
+
+#clear-filter-btn:hover {
+    background-color: #5a6268;
+}
+
+/* 表格響應式包裝：防止表格超出螢幕 */
+table {
+    width: 100%;
+    border-collapse: collapse; /* 合併邊框 */
+    margin-top: 10px;
+    font-size: 0.95rem;
+}
+
+th, td {
+    border: 1px solid #dee2e6;
+    padding: 12px;
+    text-align: left;
+}
+
+th {
+    background-color: #f1f3f5;
+    color: #495057;
+    font-weight: bold;
+}
+
+tr:nth-child(even) {
+    background-color: #f8f9fa; /* 隔行變色，方便閱讀 */
+}
+
+/* 手機版表格優化：允許橫向捲動 */
+@media (max-width: 600px) {
+    fieldset {
+        overflow-x: auto;
+    }
+}

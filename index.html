@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>個人拜訪紀錄系統</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <h1>個人拜訪紀錄系統</h1>
+
+        <fieldset class="section-box">
+            <legend>系統設定</legend>
+            <label for="default-city">預設拜訪縣市：</label>
+            <select id="default-city">
+                <option value="台北市">台北市</option>
+                <option value="新北市">新北市</option>
+                <option value="台中市">台中市</option>
+                <option value="高雄市">高雄市</option>
+                </select>
+            <button id="save-setting-btn">儲存設定</button>
+        </fieldset>
+
+        <fieldset class="section-box">
+            <legend>新增拜訪紀錄</legend>
+            <form id="visit-form">
+                <div class="form-group">
+                    <label for="name">姓名：</label>
+                    <input type="text" id="name" required>
+                </div>
+
+                <div class="form-group">
+                    <label>性別：</label>
+                    <label class="radio-label"><input type="radio" name="gender" value="男" checked> 男</label>
+                    <label class="radio-label"><input type="radio" name="gender" value="女"> 女</label>
+                </div>
+
+                <div class="form-group">
+                    <label>地址：</label>
+                    <select id="form-city" disabled>
+                        </select>
+                    <input type="text" id="form-district" placeholder="行政區 (如：信義區)" required>
+                    <input type="text" id="form-address" placeholder="詳細地址" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="visit-date">本次拜訪日期：</label>
+                    <input type="date" id="visit-date" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="next-visit-date">下次拜訪日期：</label>
+                    <input type="date" id="next-visit-date">
+                </div>
+
+                <div class="form-group">
+                    <label for="notes">對話內容紀錄：</label>
+                    <textarea id="notes" rows="4" placeholder="請輸入本次對話要點..."></textarea>
+                </div>
+
+                <button type="submit" id="submit-btn">儲存紀錄</button>
+            </form>
+        </fieldset>
+
+        <fieldset class="section-box">
+            <legend>拜訪資料列表</legend>
+            
+            <div class="filter-bar">
+                <label for="filter-district">依行政區篩選：</label>
+                <input type="text" id="filter-district" placeholder="輸入行政區關鍵字">
+                <button id="filter-btn">篩選</button>
+                <button id="clear-filter-btn">重設</button>
+            </div>
+
+            <table id="data-table">
+                <thead>
+                    <tr>
+                        <th>姓名</th>
+                        <th>性別</th>
+                        <th>地址</th>
+                        <th>拜訪日期</th>
+                        <th>下次拜訪</th>
+                        <th>對話內容</th>
+                    </tr>
+                </thead>
+                <tbody id="data-list">
+                    </tbody>
+            </table>
+        </fieldset>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>
